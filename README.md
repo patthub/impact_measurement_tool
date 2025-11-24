@@ -1,4 +1,4 @@
-#IMeTo — Work-in-Progress
+# IMeTo — Work-in-Progress
 **Impact Measurement Tool — Automated Assessment of Research Impact**
 
 IMeTo (Impact Measurement Tool) is a **work-in-progress prototype** developed at the Institute of Literary Research of the Polish Academy of Sciences (IBL PAN) within the **GRAPHIA** project.  
