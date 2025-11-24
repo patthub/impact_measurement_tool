@@ -68,4 +68,3 @@ The development draws on annotated impact descriptions from **[RAD-on](https://r
 - environment,  
 - national security.
 
-These materials support the creation of typologies and testing of LLM-based extraction methods.
