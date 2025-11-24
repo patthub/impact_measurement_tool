@@ -1,178 +1,71 @@
-# IMETO — Overview of the Project  
-**Impact Measurement Tool — Automated Analysis of Research Impact**
+#IMeTo — Work-in-Progress
+**Impact Measurement Tool — Automated Assessment of Research Impact**
 
-IMeTo (Impact Measurement Tool) is a pilot initiative of the Institute of Literary Research of the Polish Academy of Sciences (IBL PAN), developed within the **GRAPHIA** project.  
-Its goal is to automate the assessment of research impact by combining:
+IMeTo (Impact Measurement Tool) is a **work-in-progress prototype** developed at the Institute of Literary Research of the Polish Academy of Sciences (IBL PAN) within the **GRAPHIA** project.  
+The goal is to explore how AI, LLMs, and structured data workflows can support **automated assessment and communication of research impact** in the humanities and social sciences (SSH).
 
-- structured data models,  
+The system is not yet a complete solution — it is an evolving architectural and methodological concept under active development.
+
+---
+
+# 1. Purpose of IMeTo
+
+IMeTo aims to support institutions, research teams, and individual researchers by:
+
+- analysing a wide range of scientific outputs (publications, grant descriptions, teaching activity, dissemination work),  
+- identifying elements relevant for research evaluation frameworks,  
+- assisting in the preparation of **draft impact descriptions**,  
+- helping document **societal, cultural, policy, and economic influence** of SSH research.
+
+The tool is designed to improve how SSH institutions understand, monitor, and communicate their impact.
+
+---
+
+# 2. Connection to the GRAPHIA Project
+
+IMeTo is part of **GRAPHIA**, a Horizon Europe project developing an **AI-enhanced knowledge graph for SSH**. GRAPHIA integrates data from major research infrastructures and develops services that modernise SSH research practices.
+
+Within this context, IMeTo explores how:
+
+- open-source LLMs (e.g., Mistral, Llama),  
+- structured metadata models,  
 - ingestion pipelines (upload + API),  
-- vector-based text indexing,  
-- analytical and generative LLMs,  
-- a modular backend API.
+- and vector-based text search  
 
-IMeTo is designed to support managers of research institutions, research teams, and individual researchers in evaluating and communicating the societal, scientific, and economic impact of their work.
+can be combined to support impact evaluation workflows.
 
 ---
 
-# 1. Project Context and Objectives
+# 3. Planned System Concept 
 
-IMeTo aims to measure the impact of scientific activities by analysing both:
+Although under development, the intended architecture includes:
 
-- research publications, and  
-- activities defined by national evaluation frameworks (e.g., teaching, public engagement, dissemination, applied research).
+### **Data ingestion:**
+- Upload of PDFs and text files  
+- Retrieval from APIs (Crossref, ORCID, local CRIS systems)  
 
-The tool is intended to:
+### **Analysis pipeline:**
+- Document parsing and chunking  
+- Classification using analytical LLM labels (activity type, beneficiaries, outcomes)  
+- Generation of draft impact descriptions with a generative LLM  
 
-- streamline assessment processes,  
-- improve institutional reporting,  
-- support strategic decision-making,  
-- enhance communication of research impact to society.
+### **Reporting:**
+- Structured impact reports combining extracted labels and generated narratives  
+- Integration with CRIS systems or local datasets  
 
----
-
-# 2. GRAPHIA Project Background
-
-IMeTo is part of **GRAPHIA**, an EU-funded Horizon Europe project focused on:
-
-- developing a **knowledge graph for humanities and social sciences (SSH)**,
-- integrating distributed datasets and infrastructures, including:  
-  EHRI Collection Graph, E-RIHS DIGILAB KG, RESILIENCE ReIReSearch, CNRS KG Matilda, OpenCitations, ORKG, and GESIS Knowledge Graph,
-- building advanced AI- and LLM-powered services for SSH,
-- modernising SSH research and innovation workflows.
-
-GRAPHIA involves **20 partners from 10 countries**, including **five ESFRI infrastructures**, highlighting its strategic importance for the European Research Area.
+This hybrid analytical + generative approach is currently being prototyped.
 
 ---
 
-# 3. Knowledge and Technology Transfer in SSH
+# 4. Data Foundations
 
-IMeTo contributes to strengthening knowledge and technology transfer in the humanities and social sciences by enabling researchers and institutions to:
-
-- document how research results benefit society,
-- identify beneficiaries and practical applications,
-- understand the pathways through which knowledge influences public, cultural, economic, policy, or educational domains.
-
-In SSH, technology transfer often focuses on:
-
-- dissemination of knowledge,  
-- communication of insights to broader audiences,  
-- shaping public awareness or cultural practices.
-
-IMeTo helps structure and analyse these processes in a data-informed manner.
-
----
-
-# 4. System Architecture Overview
-
-The tool consists of four main layers:
-
-## 4.1. **Data Layer**
-IMeTo ingests data in two ways:
-
-1. **File uploads (PDF, TXT, DOCX)**  
-   - publications, teaching materials, grant documents, conference abstracts.
-
-2. **API-based ingestion**  
-   - Crossref  
-   - ORCID  
-   - local CRIS systems  
-   - POL-on (Poland’s national research information system)
-
-All data is normalized to unified Pydantic schemas, covering:
-
-- subjects (researcher, team, institution),
-- research outputs,
-- ingestion metadata,
-- impact reports.
-
-## 4.2. **Ingestion Pipeline**
-
-Processing includes:
-
-- parsing uploaded documents (PDF → text),  
-- extracting metadata,  
-- text chunking for vector indexing,  
-- indexing in a vector store.
-
-## 4.3. **Analytical and Generative LLM Components**
-
-IMeTo uses a hybrid LLM architecture:
-
-### **Analytical model**  
-Assigns labels from impact typologies to text segments:
-
-- activity type,  
-- beneficiaries,  
-- societal context,  
-- intended use of research results,  
-- evidence of impact.
-
-### **Generative model**  
-Produces coherent impact narratives based on:
-
-- extracted labels,  
-- textual analysis,  
-- relationships between impact types.
-
-IMeTo is designed to work with open-source LLMs such as:
-
-- Llama  
-- Mistral  
-- PLLuM  
-
-with the option for **fine-tuning** on SSH impact data.
-
-## 4.4. **Reporting Layer**
-
-The system generates structured impact reports that include:
-
-- descriptions of research activities,  
-- identified societal contributions,  
-- contextual explanations,  
-- structured evidence of impact.
-
-Reports can be consumed via:
-
-- JSON API,  
-- UI,  
-- CRIS integrations,  
-- MCP-based agent workflows.
-
----
-
-# 5. Data Source: POL-on
-
-A key dataset for developing typologies and training analytical components comes from the **POL-on** system — Poland’s integrated national database of higher education and science.
-
-It contains institution-submitted descriptions explaining how specific research results have influenced:
+The development draws on annotated impact descriptions from **[RAD-on](https://radon.nauka.gov.pl/)**, the national system for higher education and research in Poland. These descriptions document real cases of societal impact across domains such as:
 
 - economy,  
 - public administration,  
 - healthcare,  
 - culture,  
-- environmental protection,  
-- national security,  
-- other areas of social development.
+- environment,  
+- national security.
 
-These descriptions are used in national research evaluation and provide high-quality input for training and testing impact analysis models.
-
----
-
-# 6. Importance of IMeTo
-
-IMeTo addresses a fundamental challenge in SSH:
-
-> **How can the societal impact of research be documented, analysed, and communicated effectively?**
-
-Research shows [1–3] that:
-
-- impact evaluation must be data-driven,  
-- SSH institutions require scalable tools to analyse diverse outputs,  
-- researchers need support in articulating impact narratives.
-
-IMeTo enhances this process by:
-
-- analysing large volumes of data,  
-- standardising reporting practices,  
-- improving visibility of SSH impact,  
-- strengthening institutional capacity for evidence-based assessment.
+These materials support the creation of typologies and testing of LLM-based extraction methods.
