@@ -10,6 +10,8 @@ import pathlib
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Dict
 
+from models.identifiers import IdentifierSchema
+
 class BaseConnector(ABC):
     
     """
@@ -39,6 +41,20 @@ class BaseConnector(ABC):
         Returns:
             List[Dict[str, Any]]: List of results in the form of a dictionary of strings from the search query
         """
+        pass
+    @abstractmethod
+    def search_by_id(self, id: IdentifierSchema, **kwargs: Any) -> List[Dict[str, Any]]:
+        """
+        Abstract method for searching external API by id of the document/entity 
+        The id of the doc/entity is passed as an argument and is a class from identifiers.py file
+
+        Args:
+            id (IdentifierSchema): id of the document
+
+        Returns:
+            List[Dict[str, Any]]: List of results in the form of a dictionary of strings
+        """
+        pass
     
         
         
