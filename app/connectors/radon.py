@@ -112,3 +112,42 @@ class RadonConnector(BaseConnector):
 
         return InstitutionEvaluationSchema.from_radon_record(first)
 
+if __name__ == "__main__":
+    import json
+    logging.basicConfig(level=logging.INFO)
+
+    connector = RadonConnector()
+
+    institution = "Uniwersytet Warszawski"
+    print(f"\n=== Test ewaluacji RAD-on dla instytucji: {institution} ===")
+
+    # Krok 1: pobranie surowych danych z API
+    raw = connector.evaluation_search_raw(institution_name=institution, result_numbers=10)
+    print("\n--- Surowe klucze JSON ---")
+    print(list(raw.keys()))
+
+    # Krok 2: zamiana surowego rekordu na Pydantic schema
+    from app.models import InstitutionEvaluationSchema
+
+    results = raw.get("results", [])
+    if not results:
+        print("Brak wyników w API.")
+        exit()
+
+    first_record = results[0]
+    evaluation = InstitutionEvaluationSchema.from_radon_record(first_record)
+
+    # Krok 3: wypisanie pełnych danych (bez obcinania!)
+    print("\n=== Wynik Pydantic ===")
+    print(evaluation.model_dump())
+
+    # Krok 4: test funkcji pomocniczych
+    print("\n--- Kategorie ---")
+    print(evaluation.categories_summary())
+
+    print("\n--- Grupowanie po dziedzinach ---")
+    for domain, discs in evaluation.disciplines_by_domain().items():
+        print(f"{domain} → {len(discs)} dyscyplin")
+
+    print("\n--- Łączna liczba dyscyplin ---")
+    print(evaluation.total_disciplines)

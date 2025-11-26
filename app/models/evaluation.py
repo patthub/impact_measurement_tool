@@ -1,9 +1,7 @@
-# app/models/evaluation.py
-
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,8 +24,15 @@ class InstitutionEvaluationSchema(BaseModel):
     na podstawie danych z RAD-on / POL-on.
     """
 
+    # Identyfikacja instytucji / rekordu
     institution_name: str = Field(description="Nazwa instytucji.")
     institution_uuid: str = Field(description="UUID instytucji z POL-on / RAD-on.")
+    evaluation_record_id: Optional[str] = Field(
+        default=None,
+        description="ID rekordu ewaluacyjnego w RAD-on (pole 'id').",
+    )
+
+    # Okres ewaluacji
     evaluation_period: str = Field(description="Okres ewaluacji w formacie 'YYYY-YYYY'.")
     period_start: Optional[int] = Field(
         default=None,
@@ -38,20 +43,65 @@ class InstitutionEvaluationSchema(BaseModel):
         description="Rok końcowy okresu ewaluacji, np. 2021.",
     )
 
+    # Dyscypliny
     disciplines: List[DisciplineEvaluationSchema] = Field(
         default_factory=list,
         description="Lista dyscyplin wraz z kategoriami.",
     )
 
+    # Metadane
     last_refresh: Optional[datetime] = Field(
         default=None,
         description="Znacznik czasu ostatniej aktualizacji danych (jeśli dostępny).",
     )
-
     data_source: Optional[str] = Field(
         default=None,
         description="Źródło danych, np. 'POLON'.",
     )
+
+    # Proste pole agregujące – wygodne do raportów / UI
+    total_disciplines: int = Field(
+        default=0,
+        description="Łączna liczba dyscyplin w ewaluacji.",
+    )
+
+    # ===== Metody pomocnicze =====
+
+    def categories_summary(self) -> Dict[str, int]:
+        """
+        Zwraca słownik: kategoria -> liczba dyscyplin w tej kategorii.
+
+        Przykład:
+        {
+            "A+": 5,
+            "A": 10,
+            "B+": 3
+        }
+        """
+        counts: Dict[str, int] = {}
+        for d in self.disciplines:
+            cat = d.category or "UNKNOWN"
+            counts[cat] = counts.get(cat, 0) + 1
+        return counts
+
+    def disciplines_by_domain(self) -> Dict[str, List[DisciplineEvaluationSchema]]:
+        """
+        Grupuje dyscypliny po dziedzinach (domain_name).
+
+        Zwraca:
+        {
+            "dziedzina nauk humanistycznych": [DisciplineEvaluationSchema, ...],
+            "dziedzina nauk społecznych": [...],
+            ...
+        }
+        """
+        grouped: Dict[str, List[DisciplineEvaluationSchema]] = {}
+        for d in self.disciplines:
+            key = d.domain_name or "UNKNOWN"
+            grouped.setdefault(key, []).append(d)
+        return grouped
+
+    # ===== Konstruktor z rekordu RAD-on =====
 
     @classmethod
     def from_radon_record(cls, record: dict) -> "InstitutionEvaluationSchema":
@@ -79,7 +129,7 @@ class InstitutionEvaluationSchema(BaseModel):
                 period_start = int(start_str)
                 period_end = int(end_str)
             except ValueError:
-                # jeśli format jest inny, po prostu zostawiamy None
+                # jeśli format będzie inny, po prostu zostawiamy None
                 pass
 
         disciplines_raw = record.get("disciplines", []) or []
@@ -109,13 +159,18 @@ class InstitutionEvaluationSchema(BaseModel):
                 # jeśli format będzie inny, zostawiamy None
                 pass
 
+        total_disciplines = len(disciplines)
+
         return cls(
             institution_name=record.get("institutionName", ""),
             institution_uuid=record.get("institutionUuid", ""),
+            evaluation_record_id=record.get("id"),
             evaluation_period=evaluation_period,
             period_start=period_start,
             period_end=period_end,
             disciplines=disciplines,
             last_refresh=last_refresh_dt,
             data_source=record.get("dataSource"),
+            total_disciplines=total_disciplines,
         )
+
