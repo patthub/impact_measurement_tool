@@ -4,6 +4,7 @@ from .scientific_product import ScientificProductType, ScientificProductSchema
 from .beneficiaries import BeneficiaryCategory, BeneficiarySchema
 from .impact import ImpactDimension, ImpactSectionSchema, ImpactReportSchema
 from .funding import FundingType, FundingOpportunitySchema
+from .evaluation import DisciplineEvaluationSchema, InstitutionEvaluationSchema
 
 __all__ = [
     "IdentifierType",
@@ -19,4 +20,6 @@ __all__ = [
     "ImpactReportSchema",
     "FundingType",
     "FundingOpportunitySchema",
+    "DisciplineEvaluationSchema",
+    "InstitutionEvaluationSchema"
 ]

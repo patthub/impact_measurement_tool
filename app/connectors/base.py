@@ -10,7 +10,7 @@ import pathlib
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Dict
 
-from models.identifiers import IdentifierSchema
+from app.models import IdentifierSchema
 
 class BaseConnector(ABC):
     
