@@ -11,12 +11,7 @@ from app.models import ImpactCaseSchema
 
 class ImpactRepository:
     """
-    Proste repozytorium do zapisywania impactów z RAD-on w MongoDB.
-
-    Używa:
-    - bazy: 'imeto'
-    - kolekcji: 'radon_impacts'
-    - klucza: ImpactCaseSchema.source_record_id (impactUuid / id)
+  
     """
 
     def __init__(self) -> None:
@@ -42,8 +37,7 @@ class ImpactRepository:
 
     async def save_many(self, impacts: Iterable[ImpactCaseSchema]) -> None:
         """
-        Najprostsza wersja batchowego zapisu:
-        pętla po save_one. Wystarczy na początek.
+
         """
         for impact in impacts:
             await self.save_one(impact)
