@@ -24,10 +24,8 @@ class RadonConnector(BaseConnector):
     """
     Connector do RAD-on, z funkcjami:
     - pobieranie ewaluacji instytucji,
-    - pobieranie opisów wpływu (impacts) po UUID instytucji.
-
-    Dziedziczy po BaseConnector, więc implementuje wymagane metody
-    search() i search_by_id(), nawet jeśli są to tylko stuby.
+    - pobieranie opisów wpływu (impacts) po UUID instytucji,
+    - pobieranie wszystkich impactów po kindCode (np. kindCode=1).
     """
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
@@ -42,12 +40,12 @@ class RadonConnector(BaseConnector):
         Ogólne wyszukiwanie (wymagane przez abstrakcyjną klasę BaseConnector).
 
         W tej chwili nie korzystasz z free-text search w RAD-on, więc metoda
-        jest tylko stubbem. Możesz ją zaimplementować później, jeśli będzie
-        potrzebna (np. wyszukiwanie instytucji, osób itp.).
+        jest tylko stubbem. Możesz ją zaimplementować później.
         """
         raise NotImplementedError(
             "RadonConnector.search() nie jest obecnie zaimplementowane. "
-            "Użyj metod specyficznych, np. get_evaluations() lub iter_impacts_for_institution()."
+            "Użyj metod specyficznych, np. get_evaluations(), "
+            "iter_impacts_for_institution() lub iter_all_impacts()."
         )
 
     def search_by_id(
@@ -58,12 +56,12 @@ class RadonConnector(BaseConnector):
         """
         Wyszukiwanie po identyfikatorze (wymagane przez BaseConnector).
 
-        Również stub – w razie potrzeby można tu dodać logikę wyszukiwania
-        np. po identyfikatorze instytucji lub impactUuid.
+        Również stub – w razie potrzeby można dodać logikę wyszukiwania
+        np. po impactUuid.
         """
         raise NotImplementedError(
             "RadonConnector.search_by_id() nie jest obecnie zaimplementowane. "
-            "Korzystaj z iter_impacts_for_institution() lub get_evaluations()."
+            "Korzystaj z iter_impacts_for_institution() lub iter_all_impacts()."
         )
 
     # ========= EWALUACJE (po nazwie instytucji) =========
@@ -77,8 +75,6 @@ class RadonConnector(BaseConnector):
     ) -> Dict[str, Any]:
         """
         Pobiera dane ewaluacyjne dla instytucji po nazwie (institutionName).
-
-        Używane pomocniczo – ingest impactów robimy po UUID instytucji.
         """
         url = f"{self.base_url.rstrip('/')}/polon/evaluations"
 
@@ -152,10 +148,8 @@ class RadonConnector(BaseConnector):
         timeout: float = 10.0,
     ) -> Iterable[ImpactCaseSchema]:
         """
-        Generator zwracający kolejne ImpactCaseSchema dla jednej instytucji,
-        identyfikowanej przez UUID (institutionUuid).
-
-        Obsługuje paginację po polu 'token' w odpowiedzi RAD-on.
+        Generator zwracający kolejne ImpactCaseSchema dla jednej instytucji
+        (filtr po institutionUuid).
         """
         token = ""
 
@@ -177,7 +171,6 @@ class RadonConnector(BaseConnector):
             for r in results:
                 if not isinstance(r, dict):
                     continue
-                # Mapowanie surowego rekordu RAD-on na Twój model domenowy
                 yield ImpactCaseSchema.from_radon_record(r)
 
             pagination = raw.get("pagination") or {}
@@ -187,18 +180,112 @@ class RadonConnector(BaseConnector):
 
             token = next_token
 
+    # ========= IMPACTY – WSZYSTKIE PO kindCode =========
+
+    def get_impacts_page(
+        self,
+        kind_code: str = "1",
+        result_numbers: int = 10,
+        token: str = "",
+        timeout: float = 10.0,
+    ) -> Dict[str, Any]:
+        """
+        Pobiera jedną stronę impactów dla danego kindCode,
+        bez filtrowania po instytucji.
+
+        Odpowiada wywołaniu w stylu:
+        https://radon.nauka.gov.pl/opendata/polon/impacts?resultNumbers=10&kindCode=1
+        (+ opcjonalnie token do paginacji).
+        """
+        url = f"{self.base_url.rstrip('/')}/polon/impacts"
+
+        params: Dict[str, Any] = {
+            "kindCode": kind_code,
+            "resultNumbers": result_numbers,
+        }
+
+        if token:
+            params["token"] = token
+
+        try:
+            response = requests.get(url, params=params, timeout=timeout)
+            response.raise_for_status()
+        except requests.exceptions.RequestException:
+            logger.exception(
+                "Error calling RAD-on impacts for kindCode %s", kind_code
+            )
+            return {}
+
+        try:
+            data: Dict[str, Any] = response.json()
+        except ValueError:
+            logger.error("RAD-on impacts (kindCode=%s) returned non-JSON response", kind_code)
+            return {}
+
+        return data
+
+    def iter_all_impacts(
+        self,
+        kind_code: str = "1",
+        page_size: int = 50,
+        timeout: float = 10.0,
+    ) -> Iterable[ImpactCaseSchema]:
+        """
+        Generator zwracający wszystkie impacty dla danego kindCode
+        (bez filtrowania po instytucjach), z obsługą paginacji po tokenie.
+        """
+        token = ""
+        page = 0
+
+        while True:
+            page += 1
+            logger.info(
+                "Pobieranie strony impactów: kindCode=%s, page_size=%d, page=%d, token=%s",
+                kind_code,
+                page_size,
+                page,
+                token or "<none>",
+            )
+
+            raw = self.get_impacts_page(
+                kind_code=kind_code,
+                result_numbers=page_size,
+                token=token,
+                timeout=timeout,
+            )
+
+            if not isinstance(raw, dict):
+                logger.warning("Odpowiedź RAD-on (kindCode=%s) nie jest dictem, przerywam.", kind_code)
+                break
+
+            results = raw.get("results", []) or []
+            if not results:
+                logger.info("Brak dalszych wyników dla kindCode=%s – koniec.", kind_code)
+                break
+
+            for r in results:
+                if not isinstance(r, dict):
+                    continue
+                yield ImpactCaseSchema.from_radon_record(r)
+
+            pagination = raw.get("pagination") or {}
+            next_token = pagination.get("token") or ""
+            if not next_token or next_token == token:
+                logger.info("Brak tokenu paginacji – koniec.")
+                break
+
+            token = next_token
+
 
 if __name__ == "__main__":
-    # Prosty test ręczny – wstaw jakiś znany institutionUuid
+    # Prosty test ręczny: pierwsze kilka impactów kindCode=1
     logging.basicConfig(level=logging.INFO)
     connector = RadonConnector()
 
-    test_uuid = "511d4dfc-574e-4801-af14-e99dc24f8209"  # np. UW, jeśli taki masz
-    data = connector.get_impact_description(institution_uuid=test_uuid, result_numbers=1)
-
-    print("Klucze odpowiedzi impacts:", list(data.keys()))
+    data = connector.get_impacts_page(kind_code="1", result_numbers=10)
+    print("Klucze odpowiedzi impacts (kindCode=1):", list(data.keys()))
     results = data.get("results") or []
+    print("Liczba wyników na stronie:", len(results))
     if results:
-        first = results[0]
-        print("Przykładowy surowy rekord impactu (pierwszy) – klucze:")
-        print(first.keys())
+        print("Przykładowy surowy rekord impactu – klucze:")
+        print(list(results[0].keys()))
