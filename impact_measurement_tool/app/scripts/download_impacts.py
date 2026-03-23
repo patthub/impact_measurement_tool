@@ -28,7 +28,7 @@ import csv
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.connectors.radon import RadonConnector
 from app.models import ImpactCaseSchema
@@ -102,8 +102,33 @@ def download_impacts_for_institutions(
     return impacts
 
 
+def flatten_impact(impact: ImpactCaseSchema) -> Dict[str, Any]:
+    """
+    Spłaszcza zagnieżdżone pola (evidence, achievements) do osobnych kolumn.
+    Np. evidence_1_pl, evidence_1_en, ..., achievement_1_bibliographic_pl, ...
+    """
+    row = impact.model_dump(exclude={"raw", "impact_evidence", "achievements"})
+
+    # impact_areas: lista → string
+    row["impact_areas"] = "; ".join(row.get("impact_areas") or [])
+
+    # Evidence (max 5)
+    for i, ev in enumerate(impact.impact_evidence, 1):
+        row[f"evidence_{i}_pl"] = ev.description_pl
+        row[f"evidence_{i}_en"] = ev.description_en
+
+    # Achievements (max 5)
+    for i, ach in enumerate(impact.achievements, 1):
+        row[f"achievement_{i}_bibliographic_pl"] = ach.bibliographic_description_pl
+        row[f"achievement_{i}_bibliographic_en"] = ach.bibliographic_description_en
+        row[f"achievement_{i}_summary_pl"] = ach.summary_pl
+        row[f"achievement_{i}_summary_en"] = ach.summary_en
+
+    return row
+
+
 def save_json(impacts: List[ImpactCaseSchema], path: Path) -> None:
-    """Zapisuje impacty do JSON (bez pola 'raw' — żeby plik nie był ogromny)."""
+    """Zapisuje impacty do JSON (bez pola 'raw')."""
     data = [impact.model_dump(exclude={"raw"}) for impact in impacts]
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info("Zapisano %d rekordów do %s", len(data), path)
@@ -117,45 +142,25 @@ def save_json_full(impacts: List[ImpactCaseSchema], path: Path) -> None:
 
 
 def save_csv(impacts: List[ImpactCaseSchema], path: Path) -> None:
-    """Zapisuje impacty do CSV (bez pola 'raw')."""
+    """Zapisuje impacty do CSV ze spłaszczonymi evidence i achievements."""
     if not impacts:
         logger.warning("Brak danych do zapisania.")
         return
 
-    fieldnames = [
-        "source_record_id",
-        "institution_name",
-        "institution_uuid",
-        "evaluation_year",
-        "discipline_name",
-        "discipline_code",
-        "domain_name",
-        "domain_code",
-        "title_pl",
-        "title_en",
-        "summary_pl",
-        "summary_en",
-        "impact_description_pl",
-        "impact_description_en",
-        "main_conclusion_pl",
-        "main_conclusion_en",
-        "impact_areas",
-        "other_impact_area",
-        "is_interdisciplinary",
-        "interdisciplinarity_characteristic_pl",
-        "interdisciplinarity_characteristic_en",
-        "data_source",
-    ]
+    # Budujemy wiersze i zbieramy wszystkie unikalne kolumny
+    rows = [flatten_impact(imp) for imp in impacts]
+    all_keys: List[str] = []
+    seen: set = set()
+    for row in rows:
+        for k in row:
+            if k not in seen:
+                all_keys.append(k)
+                seen.add(k)
 
     with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=all_keys)
         writer.writeheader()
-
-        for impact in impacts:
-            row = impact.model_dump(exclude={"raw"})
-            # impact_areas to lista — zamieniamy na string
-            row["impact_areas"] = "; ".join(row.get("impact_areas") or [])
-            writer.writerow(row)
+        writer.writerows(rows)
 
     logger.info("Zapisano %d rekordów do %s", len(impacts), path)
 

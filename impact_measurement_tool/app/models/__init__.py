@@ -5,7 +5,7 @@ from .beneficiaries import BeneficiaryCategory, BeneficiarySchema
 from .impact import ImpactDimension, ImpactSectionSchema, ImpactReportSchema
 from .funding import FundingType, FundingOpportunitySchema
 from .evaluation import DisciplineEvaluationSchema, InstitutionEvaluationSchema
-from .impact_case import ImpactCaseSchema, InstitutionImpactSetSchema
+from .impact_case import EvidenceItem, AchievementItem, ImpactCaseSchema, InstitutionImpactSetSchema
 
 __all__ = [
     "IdentifierType",
@@ -23,6 +23,8 @@ __all__ = [
     "FundingOpportunitySchema",
     "DisciplineEvaluationSchema",
     "InstitutionEvaluationSchema",
+    "EvidenceItem",
+    "AchievementItem",
     "ImpactCaseSchema",
-    "InstitutionImpactSetSchema"
+    "InstitutionImpactSetSchema",
 ]
