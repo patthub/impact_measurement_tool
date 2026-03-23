@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imeto"
+version = "0.1.0"
+description = "Impact Measurement Tool – read impacts from RAD-on API"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "requests",
+    "regex",
+    "pydantic>=2.0",
+    "pymongo",
+    "motor",
+    "pandas",
+    "tqdm",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
